@@ -1,0 +1,181 @@
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
+
+namespace MovieRating
+{
+    internal class Program
+    {
+        static string urlBase = "https://api.themoviedb.org/3/search/movie?api_key=";
+        static string APIKey = "3f360f846243d36b808b2398561b70fb";
+        static string movieName;
+        static string rating;
+        static string country;
+        static string city;
+        static string formattedDate = DateTime.Now.ToString("HH/mm/dd/MM/yyyy");
+        static void Main(string[] args)
+        {
+            UserLocation().GetAwaiter().GetResult();
+            if (!File.Exists($"C:\\Users\\PC\\source\\repos\\MovieRating\\FavMovies.txt"))
+            {
+                File.Create($"C:\\Users\\PC\\source\\repos\\MovieRating\\FavMovies.txt").Dispose();
+            }
+            Login();
+            WhileTrue();
+        }
+        static async Task Algoritm()
+        {
+            using (HttpClient request = new HttpClient())
+            {
+                try
+                {
+                    Console.WriteLine(country + ", " + city + "  " + formattedDate);
+                    Console.WriteLine();
+                    Console.Write("Which movie do you want me to show you the rating for:");
+                    movieName = Console.ReadLine();
+                    string url = $"{urlBase}" + APIKey + "&query=" + movieName;
+                    string response = await request.GetStringAsync(url);
+                    JsonObject json1 = JsonObject.Parse(response).AsObject();
+                    rating = json1["results"][0]["vote_average"].ToString();
+                    Console.WriteLine($"The rating for {movieName} is: {rating}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("An error occurred: " + ex.Message);
+                }
+            }
+            FavouritesAdd();
+        }
+        static void FavouritesAdd()
+        {
+            Console.Write("Do you want to add this movie to your favourites:");
+            string answer = Console.ReadLine().ToLower();
+            switch (answer)
+            {
+                case "yes":
+                    using (StreamWriter writer = new StreamWriter($"C:\\Users\\PC\\source\\repos\\MovieRating\\FavMovies.txt", true))
+                    {
+                        writer.WriteLine(movieName);
+                        writer.WriteLine(rating);
+                    }
+                    Console.WriteLine($"Added {movieName} to your favourites.");
+                    break;
+                case "no":
+                    Console.WriteLine();
+                    break;
+                default:
+                    Console.WriteLine("Invalid input. Please enter 'yes' or 'no'.");
+                    FavouritesAdd();
+                    break;
+            }
+        }
+        static void FavouritesShow()
+        {
+            Console.WriteLine("Your favourite movies are:");
+            using (StreamReader reader = new StreamReader($"C:\\Users\\PC\\source\\repos\\MovieRating\\FavMovies.txt"))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    Console.WriteLine(line);
+                }
+            }
+            Console.WriteLine("Press enter to continue");
+            Console.ReadKey();
+        }
+        static async Task UserLocation()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                try
+                {
+                    string response = await client.GetStringAsync("http://ip-api.com/json/");
+                    JsonObject json = JsonObject.Parse(response).AsObject();
+                    city = json["city"]?.ToString();
+                    country = json["country"]?.ToString();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Could not determine location: " + ex.Message);
+                }
+            }
+        }
+        static void Login()
+        {
+            if (File.Exists($"C:\\Users\\PC\\source\\repos\\MovieRating\\MovieApp.txt"))
+            {
+                Console.WriteLine("Please login:");
+                Console.Write("Enter your name: ");
+                string name = Console.ReadLine();
+                Console.Write("Enter your password: ");
+                string password = Console.ReadLine();
+                string[] lines = File.ReadAllLines($"C:\\Users\\PC\\source\\repos\\MovieRating\\MovieApp.txt");
+                bool isValidUser = false;
+                for (int i = 0; i < lines.Length; i += 2)
+                {
+                    if (lines[i] == name && lines[i + 1] == password)
+                    {
+                        isValidUser = true;
+                        break;
+                    }
+                }
+                if (!isValidUser)
+                {
+                    Console.WriteLine("Invalid username or password.");
+                    Environment.Exit(0);
+                }              
+            }
+            else
+            {
+                Console.WriteLine($"{country}, {city}   {formattedDate}");
+                Console.WriteLine();
+                Console.WriteLine("You don't have an account.");
+                Console.WriteLine("Please create an account first.");
+                Console.WriteLine();
+                Console.Write("Enter your name: ");
+                string name = Console.ReadLine();
+                Console.Write("Enter your password: ");
+                string password = Console.ReadLine();
+                using (StreamWriter writer = new StreamWriter($"C:\\Users\\PC\\source\\repos\\MovieRating\\MovieApp.txt", true))
+                {
+                    writer.WriteLine(name);
+                    writer.WriteLine(password);
+                }
+                Console.WriteLine("Account created successfully.");
+                Console.WriteLine("Restart app to use.");
+            }
+        }
+        static void WhileTrue()
+        {
+            while (true)
+            {
+                Console.WriteLine($"{country}, {city}   {formattedDate}");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                Console.WriteLine("1. Show movie rating");
+                Console.WriteLine("2. Show favourite movies");
+                switch (Console.ReadLine())
+                {
+                    case "1":
+                        Console.Clear();
+                        Algoritm().GetAwaiter().GetResult();
+                        break;
+                    case "2":
+                        Console.Clear();
+                        Console.WriteLine($"{country}, {city}   {formattedDate}");
+                        Console.WriteLine();
+                        FavouritesShow();
+                        break;
+                    default:
+                        Console.WriteLine($"{country}, {city}   {formattedDate}");
+                        Console.WriteLine();
+                        Console.WriteLine("Invalid input. Please enter '1' or '2'.");
+                        continue;
+                }
+                Console.Clear();
+            }
+        }
+    }
+}
