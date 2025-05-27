@@ -9,7 +9,7 @@ namespace MovieRating
     internal class Program
     {
         static string urlBase = "https://api.themoviedb.org/3/search/movie?api_key=";
-        static string APIKey = "3f360f846243d36b808b2398561b70fb";
+        static string APIKey = your api key;
         static string movieName;
         static string rating;
         static string country;
